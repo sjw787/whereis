@@ -1,15 +1,7 @@
 import React, { Component } from 'react';
 import './App.css';
-import AWS from 'aws-sdk/dist/aws-sdk-react-native';
 import Environment from './Environment.js';
-
-let awsConfig = {
-  "region": "us-east-2",
-  "endpoint": "https://dynamodb.us-east-2.amazonaws.com"
-};
-
-AWS.config.update(awsConfig);
-const dynamodb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
+import axios from 'axios';
 
 class App extends Component {
   constructor(props){
@@ -17,18 +9,18 @@ class App extends Component {
     this.state = { environments: [] };
   }
 
+  setEnvironmentState(items){
+    this.setState( { environments: items } );
+  }
+
   componentDidMount(){
     this.getEnvironments();
   }
 
   getEnvironments(){
-    let params = { TableName: "Environments", Limit: 100 };
-
-    dynamodb.scan(params, (err, data) => {
-      if(err) throw new Error(err);
-      else {
+    axios.get('/environments').then((res) => {
         let items = [];
-        data.Items.forEach(item => {
+        res.data.Items.forEach(item => {
           items.push({
             name: item.Name.S,
             frontend: item.Frontend.S,
@@ -37,30 +29,23 @@ class App extends Component {
             key: item.EnvironmentID.N
           });
         });
-
-        this.setEnvironmentState(items)
-      }
+        this.setEnvironmentState(items);
     });
   }
 
-  setEnvironmentState(envs){
-    this.setState({
-      environments: envs.map((env) => {
-        return (
-          <Environment
-            name = {env.name}
-            frontend = {env.frontend}
-            backend = {env.backend}
-            desc = {env.desc}
-            key = {env.key}/>
-        );
-      })
-    });
+  changeOnFront(key, desc){
+
   }
 
   render(){
     return (
-      <div className="App"> { this.state.environments } </div>
+      this.state.environments.map( env => {
+        return <Environment name={env.name}
+                            frontend={env.frontend}
+                            backend={env.backend}
+                            desc={env.desc}
+                            envkey={env.key}/>
+      })
     );
   }
 }
